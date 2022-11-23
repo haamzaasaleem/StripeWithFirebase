@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-6qpg^#7z_@k^fi^&-8=l=y8lr*#9%@5%olx#f=fopcr2(5@1w3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -37,10 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'stripeapp',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -48,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -123,3 +126,11 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STRIPE_SECRET_KEY = "sk_test_51I4Tz3HF3TKtlSd4rkSraIW9rTRdY4z1MAk4hHvYMa4u2joLcIA342oao8l3vVzUdENFIJvCarNIAB9Wwmn0Teen00d7OSke72"
+STRIPE_ENDPOINT_SECRET="whsec_9c20158d2e7f9361eca8b7cfca54d2c8781128a9c3811b1766be8f9dea790722"
+DOMAIN_URL = "http://localhost:8000/"
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ORIGIN_WHITELIST = (
+  'http://localhost:3000',
+)

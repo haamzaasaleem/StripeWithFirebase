@@ -1,23 +1,41 @@
-from pathlib import Path
-import firebase_admin
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from firebase_admin import credentials
-from firebase_admin import firestore
-from pathlib import Path
-import datetime
 import json
 import stripe
-from .utils import update_stripe_data
+from .utils import update_stripe_data,database,downgrade_firebase_user
+from core.settings import STRIPE_ENDPOINT_SECRET,STRIPE_SECRET_KEY,DOMAIN_URL
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-cred = credentials.Certificate(f"{BASE_DIR}/firebase.json")
-firebase_admin.initialize_app(cred)
-database = firestore.client()
 
-STRIPE_SECRET_KEY = "sk_test_51I4Tz3HF3TKtlSd4rkSraIW9rTRdY4z1MAk4hHvYMa4u2joLcIA342oao8l3vVzUdENFIJvCarNIAB9Wwmn0Teen00d7OSke72"
-STRIPE_ENDPOINT_SECRET="whsec_9c20158d2e7f9361eca8b7cfca54d2c8781128a9c3811b1766be8f9dea790722"
+# Create checkout
+@csrf_exempt
+def create_checkout_session(request):
 
+    if request.method == 'POST':
+        domain_url = DOMAIN_URL
+        stripe.api_key = STRIPE_SECRET_KEY
+        data = json.loads(request.body)
+        try:
+            customer_id = data.get('cus_id')
+            price_id = data.get('price_id')
+            checkout_session = stripe.checkout.Session.create(
+                success_url= domain_url + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url= domain_url + 'cancelled/',
+                payment_method_types=['card'],
+                customer=customer_id,
+                mode='subscription',
+                line_items=[{
+
+                    'price': price_id,
+                    'quantity': 1
+                }
+                ],
+            )
+            return JsonResponse ({"checkout_url":checkout_session.url})
+        except Exception as e:
+            return JsonResponse({'error': str(e)})
+
+
+# catching events
 @csrf_exempt
 def custom_webhook(request):
     event = None
@@ -33,19 +51,27 @@ def custom_webhook(request):
         except stripe.error.SignatureVerificationError as e:
             print(':warning:  Webhook signature verification failed.' + str(e))
             return HttpResponse(status=400)
-        # if event['type'] == 'customer.subscription.created':
-        #         session = event['data']['object']
-        #         print("end in CREATED:::",session)
-        #         print("end in CREATED:::",session['current_period_end'])
-        #         print("start in CREATED:::",session['current_period_start'])
-        #         print("interval in CREATED:::",session['interval'])
-        #         # print("customer_id:::",customer_id)
-        if event['type'] == 'customer.subscription.created' or event['type'] == 'customer.subscription.updated':
+        if event['type'] == 'customer.subscription.trial_will_end':
+            print("trial will end in 3 days")
+
+        if event['type'] == 'customer.subscription.updated':
                 session = event['data']['object']
                 customer = session['customer']
                 collection = database.collection('subscriptions').where('customerId', '==', customer).get()
                 if collection:
                     update_stripe_data(collection,session)
         if event['type'] == 'checkout.session.completed':
+            print("Completed")
             session = event['data']['object']
+
         return HttpResponse(status=200)
+
+
+
+def downgrade_subscription(request):
+    payload = request.body
+    body = json.loads(payload)
+    customer = body.get('cus_id')
+    firebase_data = database.collection('subscriptions').where('customerId', '==', customer).get()
+    downgrade_firebase_user(firebase_data)
+    return JsonResponse({'message':'success'},safe=False)
