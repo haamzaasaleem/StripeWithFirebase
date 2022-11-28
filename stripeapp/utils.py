@@ -165,3 +165,23 @@ def downgrade_firebase_user(firebase_data):
                 }
         
     database.collection('subscriptions').document(doc.id).update(update_subscription_data)
+
+def add_user_challenge(firebase_data,body):
+
+    for doc in firebase_data:
+        pass
+    database.collection('users').document(doc.id).update({'challenges':{'0':{
+        'id': body.get('id'),
+        'name':body.get('name'),
+        'picURL':body.get('picURL'),
+        'preview':False,
+        'value':body.get('value'),
+    }},
+    'programId':body.get('programId'),
+    
+    }
+    
+    
+    
+    
+    )

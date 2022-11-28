@@ -2,7 +2,7 @@ from django.http import HttpResponse,JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import stripe
-from .utils import update_stripe_data,database,downgrade_firebase_user
+from .utils import update_stripe_data,database,downgrade_firebase_user,add_user_challenge
 from core.settings import STRIPE_ENDPOINT_SECRET,STRIPE_SECRET_KEY,DOMAIN_URL
 
 
@@ -65,7 +65,7 @@ def custom_webhook(request):
             session = event['data']['object']
 
         return HttpResponse(status=200)
-
+    
 
 
 def downgrade_subscription(request):
@@ -74,4 +74,12 @@ def downgrade_subscription(request):
     customer = body.get('cus_id')
     firebase_data = database.collection('subscriptions').where('customerId', '==', customer).get()
     downgrade_firebase_user(firebase_data)
+    return JsonResponse({'message':'success'},safe=False)
+
+def user_challenges(request):
+    payload = json.loads(request.body)
+    body = payload['data']
+    customer = body.get('user_id')
+    firebase_data = database.collection('users').where('id', '==', customer).get()
+    add_user_challenge(firebase_data,body)
     return JsonResponse({'message':'success'},safe=False)
